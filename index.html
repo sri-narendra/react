@@ -1,19 +1,649 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Task App</title>
-    <link rel="stylesheet" type="text/css" href="style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced QR Code Generator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script type="text/javascript" src="https://unpkg.com/qr-code-styling@1.5.0/lib/qr-code-styling.js"></script>
+    <style>
+        :root {
+            --bg-color: #f4f7fa;
+            --sidebar-bg: #ffffff;
+            --main-bg: #e9eef4;
+            --primary-color: #4a90e2;
+            --text-color: #333;
+            --border-color: #dbe2ea;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+            --font-family: 'Inter', sans-serif;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: var(--font-family);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            overflow: hidden;
+        }
+
+        .app-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .sidebar {
+            width: 380px;
+            background-color: var(--sidebar-bg);
+            border-right: 1px solid var(--border-color);
+            padding: 24px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .sidebar-header h1 {
+            font-size: 20px;
+            margin: 0;
+        }
+
+        .server-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #e74c3c; /* Red by default */
+        }
+
+        .status-dot.online {
+            background-color: #2ecc71; /* Green when online */
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .tab-button {
+            padding: 10px 16px;
+            cursor: pointer;
+            border: none;
+            background-color: transparent;
+            font-family: var(--font-family);
+            font-size: 14px;
+            position: relative;
+        }
+
+        .tab-button.active {
+            color: var(--primary-color);
+        }
+
+        .tab-button.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background-color: var(--primary-color);
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="url"],
+        .form-group input[type="email"],
+        .form-group input[type="tel"],
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        .accordion-item {
+            border-bottom: 1px solid var(--border-color);
+        }
+        .accordion-header {
+            width: 100%;
+            background: none;
+            border: none;
+            padding: 16px 0;
+            text-align: left;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+            padding: 0;
+        }
+
+        .color-picker-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .color-picker-group input[type="color"] {
+            -webkit-appearance: none;
+            width: 36px;
+            height: 36px;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        .color-picker-group input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+        .color-picker-group input[type="color"]::-webkit-color-swatch { border-radius: 50%; border: 1px solid var(--border-color); }
+
+        .range-slider-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .range-slider-group input[type="range"] {
+            flex-grow: 1;
+        }
+
+        .main-content {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-image: radial-gradient(var(--border-color) 1px, transparent 0);
+            background-size: 20px 20px;
+        }
+
+        #canvas {
+            width: 300px;
+            height: 300px;
+            padding: 20px;
+            background-color: var(--sidebar-bg);
+            border-radius: 16px;
+            box-shadow: 0 10px 25px var(--shadow-color);
+        }
+
+        .download-button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: auto;
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Task App</h1>
-        <div class="input-container">
-            <input type="text" id="task-input" placeholder="Add a new task...">
-            <button id="add-task-btn">Add Task</button>
+    <div class="app-container">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h1>QR Code Settings</h1>
+                <div class="server-status">
+                    <div id="status-dot" class="status-dot"></div>
+                    <span id="status-text">Server Offline</span>
+                </div>
+            </div>
+
+            <!-- Input Tabs -->
+            <div class="tabs">
+                <button class="tab-button active" data-tab="url">URL</button>
+                <button class="tab-button" data-tab="text">Text</button>
+                <button class="tab-button" data-tab="email">Email</button>
+                <button class="tab-button" data-tab="phone">Phone</button>
+            </div>
+
+            <div id="tab-url" class="tab-content active">
+                <div class="form-group">
+                    <label for="url-input">Website URL</label>
+                    <input type="url" id="url-input" placeholder="https://example.com">
+                </div>
+            </div>
+            <div id="tab-text" class="tab-content">
+                <div class="form-group">
+                    <label for="text-input">Your Text</label>
+                    <input type="text" id="text-input" placeholder="Enter any text">
+                </div>
+            </div>
+            <div id="tab-email" class="tab-content">
+                 <div class="form-group">
+                    <label for="email-input">Email Address</label>
+                    <input type="email" id="email-input" placeholder="your@email.com">
+                </div>
+            </div>
+            <div id="tab-phone" class="tab-content">
+                 <div class="form-group">
+                    <label for="phone-input">Phone Number</label>
+                    <input type="tel" id="phone-input" placeholder="+1234567890">
+                </div>
+            </div>
+
+            <!-- Accordion -->
+            <div class="accordion">
+                <div class="accordion-item">
+                    <button class="accordion-header">Dots</button>
+                    <div class="accordion-content">
+                        <div class="form-group">
+                            <label for="dots-style">Style</label>
+                            <select id="dots-style">
+                                <option value="square">Square</option>
+                                <option value="rounded">Rounded</option>
+                                <option value="dots">Dots</option>
+                                <option value="classy">Classy</option>
+                                <option value="classy-rounded">Classy Rounded</option>
+                                <option value="extra-rounded">Extra Rounded</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="dots-color-type">Color Type</label>
+                            <select id="dots-color-type">
+                                <option value="single">Single Color</option>
+                                <option value="gradient">Gradient</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="dots-color-single">
+                            <label>Color</label>
+                            <div class="color-picker-group">
+                                <input type="color" id="dots-color" value="#4a90e2">
+                            </div>
+                        </div>
+                        <div id="dots-color-gradient" style="display: none;">
+                            <div class="form-group">
+                                <label>Gradient</label>
+                                <div class="color-picker-group">
+                                    <input type="color" id="dots-gradient-color1" value="#4a90e2">
+                                    <input type="color" id="dots-gradient-color2" value="#82d456">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="dots-gradient-type">Gradient Type</label>
+                                <select id="dots-gradient-type">
+                                    <option value="linear">Linear</option>
+                                    <option value="radial">Radial</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="dots-gradient-rotation">Rotation</label>
+                                <input type="range" id="dots-gradient-rotation" min="0" max="360" value="0">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                 <div class="accordion-item">
+                    <button class="accordion-header">Corners</button>
+                    <div class="accordion-content">
+                        <div class="form-group">
+                            <label for="corners-square-style">Square Style</label>
+                            <select id="corners-square-style">
+                                <option value="square">Square</option>
+                                <option value="dot">Dot</option>
+                                <option value="extra-rounded">Extra Rounded</option>
+                            </select>
+                        </div>
+                         <div class="form-group">
+                            <label>Square Color</label>
+                            <div class="color-picker-group">
+                                <input type="color" id="corners-square-color" value="#000000">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="corners-dot-style">Dot Style</label>
+                            <select id="corners-dot-style">
+                                <option value="square">Square</option>
+                                <option value="dot">Dot</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Dot Color</label>
+                            <div class="color-picker-group">
+                                <input type="color" id="corners-dot-color" value="#000000">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <button class="accordion-header">Background</button>
+                    <div class="accordion-content">
+                        <div class="form-group">
+                            <label>Color</label>
+                            <div class="color-picker-group">
+                                <input type="color" id="background-color" value="#ffffff">
+                                <input type="checkbox" id="background-transparent">
+                                <label for="background-transparent">Transparent</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <button class="accordion-header">Logo</button>
+                    <div class="accordion-content">
+                        <div class="form-group">
+                            <label for="logo-upload">Upload Logo</label>
+                            <input type="file" id="logo-upload" accept="image/*">
+                        </div>
+                        <div class="form-group">
+                            <label for="logo-size">Logo Size</label>
+                            <input type="range" id="logo-size" min="0" max="1" step="0.1" value="0.5">
+                        </div>
+                        <div class="form-group">
+                            <label for="logo-margin">Logo Margin</label>
+                            <input type="range" id="logo-margin" min="0" max="20" step="1" value="10">
+                        </div>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <button class="accordion-header">Advanced Settings</button>
+                    <div class="accordion-content">
+                        <div class="form-group">
+                            <label for="error-correction-level">Error Correction Level</label>
+                            <select id="error-correction-level">
+                                <option value="L">Low</option>
+                                <option value="M" selected>Medium</option>
+                                <option value="Q">Quartile</option>
+                                <option value="H">High</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="qr-margin">Margin (Quiet Zone)</label>
+                            <input type="range" id="qr-margin" min="0" max="40" step="1" value="10">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="download-format">Export Format</label>
+                <select id="download-format">
+                    <option value="png">PNG</option>
+                    <option value="jpeg">JPEG</option>
+                    <option value="svg">SVG</option>
+                    <option value="webp">WEBP</option>
+                </select>
+            </div>
+            <button class="download-button" id="download-btn">Download QR Code</button>
         </div>
-        <ul id="task-list"></ul>
+
+        <div class="main-content">
+            <div id="canvas"></div>
+        </div>
     </div>
-    <script src="script.js"></script>
+
+    <script type="text/javascript">
+        document.addEventListener('DOMContentLoaded', () => {
+            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            // IMPORTANT: Replace with your actual Render backend URL in production
+            const backendUrl = isLocal ? 'http://localhost:3000/api/status' : 'https://your-qr-code-backend.onrender.com/api/status';
+
+            const statusDot = document.getElementById('status-dot');
+            const statusText = document.getElementById('status-text');
+
+            // Check server status
+            fetch(backendUrl)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'online') {
+                        statusDot.classList.add('online');
+                        statusText.textContent = 'Server Online';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking server status:', error);
+                    statusText.textContent = 'Server Offline';
+                    statusDot.classList.remove('online');
+                });
+
+            const qrCode = new QRCodeStyling({
+                width: 300,
+                height: 300,
+                type: 'svg',
+                data: 'https://github.com/agent-corp',
+                image: '',
+                dotsOptions: {
+                    color: '#4a90e2',
+                    type: 'square'
+                },
+                backgroundOptions: {
+                    color: '#ffffff',
+                },
+                cornersSquareOptions: {
+                    type: 'square',
+                    color: '#000000'
+                },
+                cornersDotOptions: {
+                    type: 'square',
+                    color: '#000000'
+                },
+                imageOptions: {
+                    margin: 10,
+                    imageSize: 0.5
+                }
+            });
+
+            qrCode.append(document.getElementById('canvas'));
+
+            const options = {
+                data: 'https://github.com/agent-corp',
+                dotsOptions: {},
+                backgroundOptions: {},
+                cornersSquareOptions: {},
+                cornersDotOptions: {},
+                imageOptions: {}
+            };
+
+            function updateQrCode() {
+                qrCode.update(options);
+            }
+
+            function updateData() {
+                const activeTab = document.querySelector('.tab-button.active').dataset.tab;
+                let data = '';
+                switch (activeTab) {
+                    case 'url':
+                        data = document.getElementById('url-input').value || 'https://github.com/agent-corp';
+                        break;
+                    case 'text':
+                        data = document.getElementById('text-input').value;
+                        break;
+                    case 'email':
+                        const email = document.getElementById('email-input').value;
+                        if (email) data = `mailto:${email}`;
+                        break;
+                    case 'phone':
+                        const phone = document.getElementById('phone-input').value;
+                        if (phone) data = `tel:${phone}`;
+                        break;
+                }
+                options.data = data || ' ';
+                updateQrCode();
+            }
+
+            // Input handling
+            document.getElementById('url-input').addEventListener('input', updateData);
+            document.getElementById('text-input').addEventListener('input', updateData);
+            document.getElementById('email-input').addEventListener('input', updateData);
+            document.getElementById('phone-input').addEventListener('input', updateData);
+
+            // Accordion functionality
+            document.querySelectorAll('.accordion-header').forEach(header => {
+                header.addEventListener('click', () => {
+                    const content = header.nextElementSibling;
+                    if (content.style.maxHeight) {
+                        content.style.maxHeight = null;
+                        content.style.padding = '0';
+                    } else {
+                        document.querySelectorAll('.accordion-content').forEach(c => {
+                            c.style.maxHeight = null;
+                            c.style.padding = '0';
+                        });
+                        content.style.maxHeight = content.scrollHeight + "px";
+                        content.style.padding = '16px 0';
+                    }
+                });
+            });
+
+            // Tabs functionality
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.addEventListener('click', () => {
+                    document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+
+                    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+                    document.getElementById(`tab-${button.dataset.tab}`).classList.add('active');
+
+                    updateData();
+                });
+            });
+
+            // Customization listeners
+            document.getElementById('dots-style').addEventListener('change', (e) => {
+                options.dotsOptions.type = e.target.value;
+                updateQrCode();
+            });
+
+            document.getElementById('dots-color-type').addEventListener('change', (e) => {
+                document.getElementById('dots-color-single').style.display = e.target.value === 'single' ? 'block' : 'none';
+                document.getElementById('dots-color-gradient').style.display = e.target.value === 'gradient' ? 'block' : 'none';
+                updateQrCode();
+            });
+
+            document.getElementById('dots-color').addEventListener('input', (e) => {
+                options.dotsOptions.color = e.target.value;
+                updateQrCode();
+            });
+
+            document.getElementById('dots-gradient-color1').addEventListener('input', (e) => {
+                updateGradient();
+            });
+             document.getElementById('dots-gradient-color2').addEventListener('input', (e) => {
+                updateGradient();
+            });
+            document.getElementById('dots-gradient-type').addEventListener('change', (e) => {
+                updateGradient();
+            });
+            document.getElementById('dots-gradient-rotation').addEventListener('input', (e) => {
+                updateGradient();
+            });
+
+            function updateGradient() {
+                options.dotsOptions.gradient = {
+                    type: document.getElementById('dots-gradient-type').value,
+                    rotation: document.getElementById('dots-gradient-rotation').value,
+                    colorStops: [
+                        { offset: 0, color: document.getElementById('dots-gradient-color1').value },
+                        { offset: 1, color: document.getElementById('dots-gradient-color2').value }
+                    ]
+                };
+                updateQrCode();
+            }
+
+            document.getElementById('background-color').addEventListener('input', (e) => {
+                options.backgroundOptions.color = e.target.value;
+                updateQrCode();
+            });
+
+            document.getElementById('background-transparent').addEventListener('change', (e) => {
+                options.backgroundOptions.color = e.target.checked ? 'transparent' : document.getElementById('background-color').value;
+                updateQrCode();
+            });
+
+            document.getElementById('corners-square-style').addEventListener('change', (e) => {
+                options.cornersSquareOptions.type = e.target.value;
+                updateQrCode();
+            });
+
+            document.getElementById('corners-square-color').addEventListener('input', (e) => {
+                options.cornersSquareOptions.color = e.target.value;
+                updateQrCode();
+            });
+
+            document.getElementById('corners-dot-style').addEventListener('change', (e) => {
+                options.cornersDotOptions.type = e.target.value;
+                updateQrCode();
+            });
+
+            document.getElementById('corners-dot-color').addEventListener('input', (e) => {
+                options.cornersDotOptions.color = e.target.value;
+                updateQrCode();
+            });
+
+            document.getElementById('logo-upload').addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = () => {
+                    options.image = reader.result;
+                    updateQrCode();
+                };
+                reader.readAsDataURL(file);
+            });
+
+            document.getElementById('logo-size').addEventListener('input', (e) => {
+                options.imageOptions.imageSize = e.target.value;
+                updateQrCode();
+            });
+
+            document.getElementById('logo-margin').addEventListener('input', (e) => {
+                options.imageOptions.margin = e.target.value;
+                updateQrCode();
+            });
+
+            document.getElementById('error-correction-level').addEventListener('change', (e) => {
+                options.qrOptions = { errorCorrectionLevel: e.target.value };
+                updateQrCode();
+            });
+
+            document.getElementById('qr-margin').addEventListener('input', (e) => {
+                options.margin = e.target.value;
+                updateQrCode();
+            });
+
+            // Download button
+            document.getElementById('download-btn').addEventListener('click', () => {
+                const extension = document.getElementById('download-format').value;
+                qrCode.download({ name: 'qrcode', extension });
+            });
+        });
+    </script>
 </body>
 </html>
